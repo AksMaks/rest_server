@@ -1,0 +1,536 @@
+<html>
+  <script src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <body>
+  
+    <div id="mydiv"></div>
+
+    <script type="text/babel">
+
+        const request = (Obj, Metod, Data) => {
+            return (
+                axios.post("/api" + "/" + Obj + "/" + Metod, {
+                    Data: Data
+                })
+                .then((response) => {
+                if(response.data.message) alert(response.data.message)
+                return response.data
+                })
+                .catch(error => console.log(error))
+            );
+        }
+
+        class Select extends React.Component {
+            constructor(props){
+                super(props);
+
+                let custs = []
+                for (let i = 0; i <= 25; i++) {
+                custs.push({firstName: `first${i}`, lastName: `last${i}`,
+                email: `abc${i}@gmail.com`, address: `000${i} street city, ST`, zipcode: `0000${i}`});
+                }
+
+                this.state = {
+                    Data: null,
+                    Custs: custs
+                }
+            }
+            componentDidMount(){
+                request(this.props.Table, "SELECT")
+                .then((data) => {
+                    this.setState({
+                        Data: Object.values(data.Data).length? Object.values(data.Data): null
+                    });
+                });
+            }
+            
+            render(){
+            return (
+            <div>
+                <table  className={"Table"}>
+                            <thead>
+                                <tr key={"key_tr"}>
+                                    {this.state.Data && Object.keys(this.state.Data[0]).map((el, ind) => {
+                                        return (<th key={ind}>{el}</th>)
+                                    })}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {this.state.Data && this.state.Data.map((el, ind) => {
+                                    return (
+                                        <tr key={ind}>
+                                            {Object.values(el).map((el1, ind1) => {
+                                                return (
+                                                    <td key={ind1}>{el1}</td>
+                                                )
+                                            })}
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+            </div>
+        )
+        }
+        }
+        class Search extends React.Component {
+            constructor(props){
+                super(props);
+                this.state = {
+                    Data: null,
+                    value: ""
+                }
+                this.handleChange = this.handleChange.bind(this);
+                this.handleSubmit = this.handleSubmit.bind(this);
+            }
+            handleChange(event) {
+                this.setState({
+                    value: event.target.value
+                });
+            }
+            handleSubmit() {
+                request(this.props.Table, "SEARCH", {Id: this.state.value})
+                .then((data) => {
+                    this.setState({
+                        Data: Object.values(data.Data).length? Object.values(data.Data): null
+                    });
+                });
+            }
+            
+            render(){
+                return (
+                    <div>
+                        <div>
+                            <input type="text" value={this.state.value} onChange={this.handleChange} />
+                            <button onClick={this.handleSubmit}>Search</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr key={"key_tr"}>
+                                    {this.state.Data && Object.keys(this.state.Data[0]).map((el, ind) => {
+                                        return (<th key={ind}>{el}</th>)
+                                    })}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {this.state.Data && this.state.Data.map((el, ind) => {
+                                    return (
+                                        <tr key={ind}>
+                                            {Object.values(el).map((el1, ind1) => {
+                                                return (
+                                                    <td key={ind1}>{el1}</td>
+                                                )
+                                            })}
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+            )
+            }
+        }
+        class Insert extends React.Component {
+            constructor(props){
+                super(props);
+                this.state = {
+                    Data: null,
+                    asd: 0
+                }
+                this.handleSubmit = this.handleSubmit.bind(this);
+                
+                this.props.Form.forEach(el => {
+                    this.state = {...this.state, [el.Name + "Current"]: "", [el.Name + "Select"]: null};
+                });
+            }
+            
+            componentDidMount(){
+                this.props.Form.forEach(el => {
+                    if(el.Select){
+                        request(el.Select, "SELECT")
+                        .then((data) => {
+                            if(el.Join){
+                                this.setState({
+                                    [el.Name + "Current"]: Object.values(data.Data).length? Object.values(data.Data).map(el => {
+                                        return {...el, Flag: false}
+                                    }): null
+                                });
+                            }else{
+                                this.setState({
+                                    [el.Name + "Current"]: Object.values(data.Data).length? Object.values(data.Data)[0]["Id"]: null,
+                                    [el.Name + "Select"]: Object.values(data.Data).length? Object.values(data.Data) : null
+                                });
+                            }
+                            
+                        });
+                    }
+                });
+            }
+            
+            handleSubmit(event) {
+                console.log(this.state);
+                let Data = {};
+                this.props.Form.forEach(el => {
+                    Data = {...Data, [el.Name]: this.state[el.Name + "Current"]};
+                });
+                request(this.props.Table, "INSERT", Data);
+                event.preventDefault();
+            }
+            
+            render(){
+                console.log(this.state)
+                return (
+                    <div>
+                        <div>
+                            <form onSubmit={this.handleSubmit}>
+                                {
+                                this.props.Form.map((el, ind) => {
+                                    if(el.Select && el.Join){
+                                        return(
+                                            <div>
+                                                {el.Name}
+                                                {this.state[el.Name + "Current"] && (this.state[el.Name + "Current"]).map((el1, ind1) => {
+                                                    return (
+                                                        <div 
+                                                            key={ind1}
+                                                            onClick={()=>{
+                                                                let temp = this.state[el.Name + "Current"];
+                                                                temp[ind1].Flag = !temp[ind1].Flag;
+                                                                this.setState({
+                                                                    [el.Name + "Current"]: temp,
+                                                                    asd: this.state.asd++
+                                                                })
+                                                            }}
+                                                            >
+                                                            {el1.Name? el1.Name: el1.Id}{el1.Flag? " Да": "Нет"}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        )
+                                    };
+                                    if(el.Select && !el.Join){
+                                        return(
+                                            <div>
+                                                {el.Name}
+                                                <select key={ind} onChange={(event) => this.setState({[el.Name + "Current"]: event.target.value})}>
+                                                    {this.state[el.Name + "Select"] && (this.state[el.Name + "Select"]).map((el1, ind1) => {
+                                                    return (
+                                                        <option key={ind1} value={el1.Id}>{el1.Name? el1.Name: el1.Id}</option>
+                                                    )
+                                                    })}
+                                                </select>
+                                            </div>
+                                        )
+                                    };
+                                    if(!el.Select && !el.Join){
+                                        return(
+                                            <div>
+                                                {el.Name}
+                                                <input key={ind} type="text" value={this.state[el.Name + "Current"]} 
+                                                    onChange={(event) => this.setState({[el.Name + "Current"]: event.target.value})}
+                                                    required
+                                                />
+                                            </div>
+                                        )
+                                    };
+                                })
+                                }
+                                <input type="submit" value="Insert" />
+                            </form>
+                            
+                        </div>
+                    </div>
+            )
+            }
+        }
+        class Updata extends React.Component {
+            constructor(props){
+                super(props);
+                this.state = {
+                    Data: null,
+                    Id: "",
+                    asd: 0
+                }
+                this.handleSubmit = this.handleSubmit.bind(this);
+                Object.values(this.props.Form).forEach(el => {
+                    this.state = {...this.state, [el.Name + "Current"]: "", [el.Name + "Select"]: null};
+                });
+            }
+            
+            componentDidMount(){
+                this.props.Form.forEach(el => {
+                    if(el.Select){
+                        request(el.Select, "SELECT")
+                        .then((data) => {
+                            if(el.Join){
+                                this.setState({
+                                    [el.Name + "Current"]: Object.values(data.Data).length? Object.values(data.Data).map(el => {
+                                        return {...el, Flag: false}
+                                    }): null
+                                });
+                            }else{
+                                this.setState({
+                                    [el.Name + "Current"]: Object.values(data.Data).length? Object.values(data.Data)[0]["Id"]: null,
+                                    [el.Name + "Select"]: Object.values(data.Data).length? Object.values(data.Data) : null
+                                });
+                            }
+                            
+                        });
+                    }
+                });
+            }
+            
+            handleSubmit(event) {
+                console.log(this.state);
+                let Data = {Id: this.state.Id};
+                this.props.Form.forEach(el => {
+                    Data = {...Data, [el.Name]: this.state[el.Name + "Current"]};
+                });
+                request(this.props.Table, "UPDATE", Data);
+                event.preventDefault();
+            }
+            
+            render(){
+                return (
+                    <div>
+                        <div>
+                            <form onSubmit={this.handleSubmit}>
+                                <div>
+                                    Id
+                                    <input type="text" value={this.state.Id} 
+                                        onChange={(event) => this.setState({Id: event.target.value})}
+                                        required
+                                    />
+                                </div>
+                                
+                                {
+                                this.props.Form.map((el, ind) => {
+                                    if(el.Select && el.Join){
+                                        return(
+                                            <div>
+                                                {el.Name}
+                                                {this.state[el.Name + "Current"] && (this.state[el.Name + "Current"]).map((el1, ind1) => {
+                                                    return (
+                                                        <div 
+                                                            key={ind1}
+                                                            onClick={()=>{
+                                                                let temp = this.state[el.Name + "Current"];
+                                                                temp[ind1].Flag = !temp[ind1].Flag;
+                                                                this.setState({
+                                                                    [el.Name + "Current"]: temp,
+                                                                    asd: this.state.asd++
+                                                                })
+                                                            }}
+                                                            >
+                                                            {el1.Name? el1.Name: el1.Id}{el1.Flag? " Да": "Нет"}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        )
+                                    }
+                                    if(el.Select && !el.Join){
+                                        return(
+                                            <div>
+                                                {el.Name}
+                                                <select key={ind} onChange={(event) => this.setState({[el.Name + "Current"]: event.target.value})}>
+                                                    {this.state[el.Name + "Select"] && (this.state[el.Name + "Select"]).map((el1, ind1) => {
+                                                    return (
+                                                        <option key={ind1} value={el1.Id}>{el1.Name? el1.Name: el1.Id}</option>
+                                                    )
+                                                    })}
+                                                </select>
+                                            </div>
+                                        )
+                                    }
+                                    if(!el.Select && !el.Join){
+                                        return(
+                                            <div>
+                                                {el.Name}
+                                                <input key={ind} type="text" value={this.state[el.Name + "Current"]} 
+                                                    onChange={(event) => this.setState({[el.Name + "Current"]: event.target.value})}
+                                                    required
+                                                />
+                                            </div>
+                                        )
+                                    }
+                                })
+                                }
+                                <input type="submit" value="Updata" />
+                            </form>
+                            
+                        </div>
+                    </div>
+            )
+            }
+        }
+        class Delete extends React.Component {
+            constructor(props){
+                super(props);
+                this.state = {
+                    Data: null,
+                    value: "1"
+                }
+                this.handleChange = this.handleChange.bind(this);
+                this.handleSubmit = this.handleSubmit.bind(this);
+            }
+            handleChange(event) {
+                this.setState({
+                    value: event.target.value
+                });
+            }
+            handleSubmit() {
+                request(this.props.Table, "DELETE", {Id: this.state.value});
+            }
+            
+            render(){
+                return (
+                    <div>
+                        <div>
+                            <input type="text" value={this.state.value} onChange={this.handleChange} />
+                            <button onClick={this.handleSubmit}>Delete</button>
+                        </div>
+                    </div>
+            )
+            }
+        }
+
+        class Tools extends React.Component {
+            constructor(props){
+                super(props);
+                this.state = { 
+                    CurrentTool: "SELECT"
+                }
+            }
+            
+            render(){
+                return (
+                    <div>
+                        <div onClick={()=> this.setState({CurrentTool: "SELECT"})}>SELECT </div>
+                        <div onClick={()=> this.setState({CurrentTool: "SEARCH"})}>SEARCH </div>
+                        <div onClick={()=> this.setState({CurrentTool: "INSERT"})}>INSERT </div>
+                        <div onClick={()=> this.setState({CurrentTool: "UPDATE"})}>UPDATE </div>
+                        <div onClick={()=> this.setState({CurrentTool: "DELETE"})}>DELETE </div>
+                        
+                        {this.state.CurrentTool == "SELECT" && <Select Table={this.props.Table}/>}
+                        {this.state.CurrentTool == "SEARCH" && <Search Table={this.props.Table}/>}
+                        {this.state.CurrentTool == "INSERT" && <Insert Table={this.props.Table} Form={this.props.Form}/>}
+                        {this.state.CurrentTool == "UPDATE" && <Updata Table={this.props.Table} Form={this.props.Form}/>}
+                        {this.state.CurrentTool == "DELETE" && <Delete Table={this.props.Table}/>}
+                    </div>
+            )
+            }
+        }
+
+        class CRUD extends React.Component {
+            constructor(props){
+                super(props);
+                this.state = { 
+                    Table: "Category",
+                    Form: [{Name: "Name", Select: null}]
+                }
+            }
+            
+            render(){
+                return (
+                    <div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "Category",
+                                    Form: [{Name: "Name", Select: null}]
+                                })}
+                                to={"/Category"}>Category</div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "Delivery",
+                                    Form: [
+                                        {Name: "Date", Select: null}, 
+                                        {Name: "IdWorkman", Select: "Workman"}, 
+                                        {Name: "IdDistributor", Select: "Distributor"},
+                                    ]
+                                })}
+                                to={"/Delivery"}>Delivery</div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "DeliveryComposition",
+                                    Form: [
+                                        {Name: "IdDelivery", Select: "Delivery"}, 
+                                        {Name: "IdProduct", Select: "Product"}, 
+                                        {Name: "Number", Select: null}]
+                                })}
+                                to={"/DeliveryComposition"}>DeliveryComposition</div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "Distributor",
+                                    Form: [
+                                        {Name: "Name", Select: null},
+                                        {Name: "IdProduct", Select: "Product", Join: true}
+                                    ]
+                                })}
+                                to={"/Distributor"}>Distributor</div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "Position",
+                                    Form: [
+                                        {Name: "Name", Select: null}
+                                    ]
+                                })}
+                                to={"/Position"}>Position</div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "Product",
+                                    Form: [
+                                        {Name: "Name", Select: null}, 
+                                        {Name: "IdCategory", Select: "Category"}, 
+                                        {Name: "IdUnit", Select: "Unit"},
+                                        {Name: "IdDistributor", Select: "Distributor", Join: true}
+                                    ]
+                                })}
+                                to={"/Product"}>Product</div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "ProductDistributor",
+                                    Form: [
+                                        {Name: "IdProduct", Select: "Product"}, 
+                                        {Name: "IdDistributor", Select: "Distributor"}
+                                    ]
+                                })}
+                                to={"/ProductDistributor"}>ProductDistributor</div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "ProductPosition",
+                                    Form: [{Name: "IdProduct", Select: "Product"}, {Name: "IdPosition", Select: "Position"}]
+                                })}
+                                to={"/ProductPosition"}>ProductPosition</div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "Unit",
+                                    Form: [{Name: "Name", Select: null}]
+                                })}
+                                to={"/Unit"}>Unit</div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "Workman",
+                                    Form: [{Name: "Name", Select: null}, {Name: "IdPosition", Select: "WorkmanPosition"}]
+                                })}
+                                to={"/Workman"}>Workman</div>
+                            <div 
+                                onClick={()=> this.setState({
+                                    Table: "WorkmanPosition",
+                                    Form: [{Name: "Name", Select: null}]
+                                })}
+                                to={"/WorkmanPosition"}>WorkmanPosition</div>
+                        <Tools Table={this.state.Table} Form={this.state.Form}/>
+                    </div>
+                )
+            }
+        }
+
+        ReactDOM.render(<CRUD />, document.getElementById('mydiv'))
+    </script>
+  </body>
+</html>

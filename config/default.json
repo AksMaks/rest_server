@@ -1,0 +1,8 @@
+{
+  "port": 5000,
+  "jwtSecret": "ALO",
+  "dbHost": "localhost",
+  "dbUser": "root",
+  "dbPassword": "",
+  "dbDatabase": "kravets_laba1"
+}
